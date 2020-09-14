@@ -1,19 +1,25 @@
+BINDIR=bin
 CC=clang
 CFLAGS=-s -DNDEBUG -O3
-DSTROOT=/usr/bin
+CP=cp
+DSTROOT=/usr
+MKDIR=mkdir
+OUTDIR=./out
+RM=rm
 TARGET=android-patch-elf
 
 .PHONY: all
 all: $(TARGET)
 
 $(TARGET): main.c
-	$(CC) $(CFLAGS) -o $(TARGET) main.c
+	$(MKDIR) -p ${OUTDIR}
+	$(CC) $(CFLAGS) -o $(OUTDIR)/$(TARGET) main.c
 
 .PHONY: install
-install:
-	mkdir -p $(DSTROOT)
-	cp -p android-patch-elf $(DSTROOT)
+install: $(TARGET)
+	$(MKDIR) -p $(DSTROOT)/$(BINDIR)
+	$(CP) -p $(OUTDIR)/$(TARGET) $(DSTROOT)/$(BINDIR)
 
 .PHONY: clean 
 clean:
-	rm -f $(TARGET)
+	$(RM) -f $(OUTDIR)/$(TARGET)

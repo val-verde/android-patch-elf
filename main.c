@@ -33,18 +33,26 @@ main(int32_t argc,
     }
 
     uint8_t *mem = mmap(NULL, st.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    Elf64_Ehdr * const ehdr = (Elf64_Ehdr*)mem;
-    Elf64_Phdr * const phdr = (Elf64_Phdr*)&mem[ehdr->e_phoff];
+    Elf64_Ehdr * const elf_header = (Elf64_Ehdr *)mem;
+    Elf64_Phdr * const program_headers = (Elf64_Phdr *)&mem[elf_header->e_phoff];
 
-    for(size_t i = 0; i < ehdr->e_phnum; ++i) {
-        if (phdr[i].p_type == PT_DYNAMIC) {
-            Elf64_Dyn * const dyn = (Elf64_Dyn *)&mem[phdr[i].p_offset];
-            size_t const num_dyn = phdr[i].p_filesz / sizeof(*dyn);
+    for (size_t i = 0; i < elf_header->e_phnum; ++i) {
+        if (program_headers[i].p_type == PT_DYNAMIC) {
+            Elf64_Dyn * const dyn = (Elf64_Dyn *)&mem[program_headers[i].p_offset];
+            size_t const num_dyn = program_headers[i].p_filesz / sizeof(*dyn);
             size_t stroffset = 0;
 
             for (size_t i = 0; i < num_dyn; ++i) {
                 if (dyn[i].d_tag == DT_STRTAB) {
-                     stroffset = dyn[i].d_un.d_val;
+                    Elf64_Shdr * const section_headers = (Elf64_Shdr *)&mem[elf_header->e_shoff];
+
+                    for (size_t j = 0; j < elf_header->e_shnum; ++j) {
+                        if (section_headers[j].sh_addr == dyn[i].d_un.d_ptr) {
+                            stroffset = section_headers[j].sh_offset;
+                            break;
+                        }
+	             }
+
                      break;
                 }
             }
@@ -56,13 +64,13 @@ main(int32_t argc,
                 case DT_NEEDED:
                 case DT_SONAME: {
                     char const *name = (char *)&mem[offset];
-                    char *suffix_ptr = strstr(name, ".so") + 3;
-                    
+                    char *suffix_ptr = strstr(name, ".so");
+
                     // No-op version suffix for dependent libraries
-                    if (suffix_ptr[0]) {
-                        suffix_ptr[0] = '\0';
+                    if (suffix_ptr && suffix_ptr[3]) {
+                        suffix_ptr[3] = '\0';
                     }
-                    
+
                     break;
                 }
 

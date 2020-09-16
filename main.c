@@ -58,9 +58,9 @@ main(int32_t argc,
                                 stroffset = section_headers[j].sh_offset;
                                 break;
                             }
-	                 }
+                        }
 
-                         break;
+                        break;
                     }
                 }
 
